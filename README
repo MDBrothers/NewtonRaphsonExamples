@@ -1,0 +1,22 @@
+Description of NewtonRaphsonExamples repository:
+
+The cpp files contain implementations of different methods for computing what
+are known as 'tangent-stiffness' matrices in computational mechanics or
+'Jacobian' matrices in mathematics.
+
+These examples are not general purpose, but give an idea of how to use each
+Jacobian calculation method in solving a nonlinear system within the
+Newton-Raphson method.
+
+Included in the examples is a method using forward difference, which is one
+type of finite difference, a method using automatic differentiation, which is a
+computerized implementation of the chain rule of calculus, and complex step,
+which is a method for calculating a Jacobian based on complex Taylor series
+expansion.
+
+All three examples were written and tested on a system running
+Ubuntu Linux 13.04 64bit with GCC 4.7 for compiler.
+
+The examples depend on the Armadillo API, available at sourceforge.net, as well
+as the Trilinos API with Teuchos and Sacado packages, available at
+trilinos.sandia.gov.
