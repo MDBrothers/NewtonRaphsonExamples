@@ -3,4 +3,4 @@
 #Compiled with GCC 4.7
 #Armadillo API version 3.91
 
-g++ forward_difference.cpp -larmadillo -o fdexample.exe
+g++ -O3 forward_difference.cpp -lteuchos -lblas -llapack -o fdexample.exe
