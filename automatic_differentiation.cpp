@@ -45,23 +45,22 @@ The Newton Raphson scheme works like this:
 --or-- the maximum number of iterations allowable has been exceeded according to your criteria.
 
 ####Dependencies:
-The "Armadillo" C++ API was chosen to handle the linear algebra tasks because of its clear syntax
-and integration with LAPACK. For a list of dependences and installation instructions for
-Armadillo refer to the Armadillo project page at sourceforge.net.
-
 The "Trilinos" C++ API including the "Teuchos" and "Sacado" packages handle the automatic differentiation implementation.
 Only the forward AD portion of Sacado is used in this example. 
-Authors Note: Sacado::Fad::Dfad<T> is demonstrably compatible with std::valarray<T> for the GCC4.7 compiler;
-this allows use of convenient std::slice operations and vector-style syntax. 
-For installation instructions and sourcode, visit: http://trilinos.sandia.gov/
+Part of Teuchos are used for linear solves.
+
+For installation instructions and sourcecode, visit: http://trilinos.sandia.gov/
 
 As of 20 Aug. 2013, Armadillo can be obtained at: http://arma.sourceforge.net/
 */
 
 #include <iostream>
 #include <Teuchos_RCPNode.hpp>
+#include <Teuchos_LAPACK.hpp>
+#include "Teuchos_SerialDenseMatrix.hpp"
+#include "Teuchos_SerialDenseVector.hpp"
+#include "Teuchos_Version.hpp"
 #include <Sacado.hpp>
-#include <armadillo>
 #include <valarray>
 
 typedef Sacado::Fad::DFad<double>  F;  // Forward AD with # of ind. vars given later
@@ -76,16 +75,16 @@ void calculateDependentVariables(const std::valarray<F>& myOffsets,
 		                 std::valarray<F>& targetsCalculated);
 
 void calculateJacobian(const std::valarray<F>& myOffsets,
-			arma::Mat<double>& myJacobian, 
+			Teuchos::SerialDenseMatrix<int, double>& myJacobian, 
 		       std::valarray<F>& myTargetsCalculated, 
 		       std::valarray<F>& myCurrentGuess, 
 		       void myCalculateDependentVariables(const std::valarray<F>&, const std::valarray<F>&, std::valarray<F>&));
 
 void updateGuess(std::valarray<F>& myCurrentGuess,
-		arma::Col<double>& mySolutionTemp,
-		arma::Col<double>& myTargetsCalculatedValuesOnly,
+		Teuchos::SerialDenseVector<int, double>& myTargetsCalculatedValuesOnly,
 		 const std::valarray<F>& myTargetsCalculated,
-		 const arma::Mat<double>& myJacobian);
+		Teuchos::SerialDenseMatrix<int, double>& myJacobian,
+		Teuchos::LAPACK<int, double>& myLAPACK); 
 
 void calculateResidual(const std::valarray<F>& myTargetsDesired, 
 		       const std::valarray<F>& myTargetsCalculated,
@@ -99,6 +98,10 @@ int main(int argc, char* argv[])
 	//but we explicitly give it this authority from the main method
 	void (*yourCalculateDependentVariables)(const std::valarray<F>&, const std::valarray<F>&, std::valarray<F>&);
 	yourCalculateDependentVariables = &calculateDependentVariables;
+
+	//Create an object to allow access to LAPACK using a library found in Trilinos
+	//
+	Teuchos::LAPACK<int, double> Teuchos_LAPACK_Object;	
 
 	//The problem being solved is to find the intersection of three infinite paraboloids:
 	//(x-1)^2 + y^2 + z = 0
@@ -116,8 +119,7 @@ int main(int argc, char* argv[])
 
 	std::valarray<F> targetsCalculated(0.0, NUMDIMENSIONS);
 
-	arma::Col<double> targetsCalculatedValuesOnly(NUMDIMENSIONS);
-	targetsCalculatedValuesOnly.fill(0.0);
+	Teuchos::SerialDenseVector<int, double> targetsCalculatedValuesOnly(NUMDIMENSIONS);
 
 	std::valarray<F> currentGuess(2.0, NUMDIMENSIONS);
 	//designate the elements of the currentGuess vector as independent variables that we want to take partial derivatives
@@ -128,13 +130,10 @@ int main(int argc, char* argv[])
 		currentGuess[i].diff(i, NUMDIMENSIONS);
 	}
 
-	arma::Col<double> solutionTemp(NUMDIMENSIONS);
-	solutionTemp.fill(0.0);
-
 	//Place to store our tangent-stiffness matrix or Jacobian
 	//One element for every combination of dependent variable with independent variable
-	arma::Mat<double> jacobian(NUMDIMENSIONS, NUMDIMENSIONS);
-	jacobian.fill(0.0);
+	//Column major
+	Teuchos::SerialDenseMatrix<int, double> jacobian(NUMDIMENSIONS, NUMDIMENSIONS);
 
 	int count = 0;
 	double error = 1.0E5;
@@ -153,10 +152,10 @@ int main(int argc, char* argv[])
 
 		//Compute a guessChange and immediately set the currentGuess equal to the guessChange
  		updateGuess(currentGuess,
-			    solutionTemp,
 			    targetsCalculatedValuesOnly,
 			    targetsCalculated,
-			    jacobian);
+			    jacobian,
+			    Teuchos_LAPACK_Object);
 
 		//Compute F(x) with the updated, currentGuess
 		calculateDependentVariables(offsets,
@@ -204,7 +203,7 @@ void calculateDependentVariables(const std::valarray<F>& myOffsets,
 }
 
 void calculateJacobian(const std::valarray<F>& myOffsets,
-		       arma::Mat<double>& myJacobian, 
+			Teuchos::SerialDenseMatrix<int, double>& myJacobian, 
 		       std::valarray<F>& myTargetsCalculated, 
 		       std::valarray<F>& myCurrentGuess, 
 		       void myCalculateDependentVariables(const std::valarray<F>&, const std::valarray<F>&, std::valarray<F>&))
@@ -226,33 +225,39 @@ void calculateJacobian(const std::valarray<F>& myOffsets,
 		//extract the derivatives computed for us by the AD system
 		for(int i = 0; i < NUMDIMENSIONS; i++)
 		{
-			myJacobian.col(j)[i] = myTargetsCalculated[i].dx(j);
+			myJacobian(i,j) = myTargetsCalculated[i].dx(j);
 		}
 
 	}
 }
 
 void updateGuess(std::valarray<F>& myCurrentGuess,
-		arma::Col<double>& mySolutionTemp,
-		arma::Col<double>& myTargetsCalculatedValuesOnly,
+		Teuchos::SerialDenseVector<int, double>& myTargetsCalculatedValuesOnly,
 		 const std::valarray<F>& myTargetsCalculated,
-		 const arma::Mat<double>& myJacobian)
+		Teuchos::SerialDenseMatrix<int, double>& myJacobian, 
+		Teuchos::LAPACK<int, double>& myLAPACK
+		 )
 {
 	//v = J(inverse) * (-F(x))
 	//new guess = v + old guess
 	for(int i = 0; i < NUMDIMENSIONS; i++)
 	{
-		myTargetsCalculatedValuesOnly[i] = myTargetsCalculated[i].val();
+		myTargetsCalculatedValuesOnly[i] = -myTargetsCalculated[i].val();
 	}
 
-	std::cout << "Current Jacobian: " << std::endl;
-	std::cout << myJacobian << std::endl;
+	//Perform an LU factorization of this matrix. 
+	int ipiv[NUMDIMENSIONS], info;
+	char TRANS = 'N';
+	myLAPACK.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, myJacobian.values(), myJacobian.stride(), ipiv, &info ); 
+	    
+	// Solve the linear system.
+	myLAPACK.GETRS( TRANS, NUMDIMENSIONS, 1, myJacobian.values(), myJacobian.stride(), 
+	ipiv, myTargetsCalculatedValuesOnly.values(), myTargetsCalculatedValuesOnly.stride(), &info );  
 
-	mySolutionTemp = solve(myJacobian, -myTargetsCalculatedValuesOnly, true);
-
+	//We have overwritten myTargetsCalculatedValuesOnly with guess update values
 	for(int i = 0; i < NUMDIMENSIONS; i++)
 	{
-		myCurrentGuess[i] += mySolutionTemp[i];
+		myCurrentGuess[i] += myTargetsCalculatedValuesOnly[i];
 	}
 }
 
