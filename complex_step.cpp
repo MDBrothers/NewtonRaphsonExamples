@@ -36,7 +36,7 @@ They should intersect at the point (1, 0, 0)
 const int NUMDIMENSIONS = 3;
 const int MAXITERATIONS = 9;
 const double ERRORTOLLERANCE = 1.0E-4;
-const double PROBEDISTANCE = 1.E-19;
+const double PROBEDISTANCE = 1.E-49;
 
 void calculateDependentVariables(const Teuchos::SerialDenseMatrix<int, std::complex<double> >& myOffsets,
 				 const Teuchos::SerialDenseVector<int, std::complex<double> >& myCurrentGuess, 

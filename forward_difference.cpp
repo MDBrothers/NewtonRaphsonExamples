@@ -209,9 +209,7 @@ void calculateJacobian(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 
 	//Reset to unperturbed, so we dont waste a function evaluation
 	
-	myTargetsCalculated *= 0.0;
-	myTargetsCalculated += myUnperturbedTargetsCalculated;
-	std::cout << myTargetsCalculated << std::endl;
+	myTargetsCalculated = myUnperturbedTargetsCalculated;
 
 }
 
