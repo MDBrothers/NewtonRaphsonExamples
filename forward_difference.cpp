@@ -26,16 +26,14 @@ They should intersect at the point (1, 0, 0)
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_SerialDenseSolver.hpp>
 #include <Teuchos_LAPACK.hpp>
-#include <Teuchos_BLAS.hpp>
 #include "Teuchos_SerialDenseMatrix.hpp"
 #include "Teuchos_SerialDenseVector.hpp"
 #include "Teuchos_Version.hpp"
-#include <valarray>
 
 const int NUMDIMENSIONS = 3;
 const int MAXITERATIONS = 9;
 const double ERRORTOLLERANCE = 1.0E-4;
-const double PROBEDISTANCE = 1.E-12;
+const double PROBEDISTANCE = 1.E-9;
 
 void calculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 				 const Teuchos::SerialDenseVector<int, double>& myCurrentGuess, 
@@ -46,20 +44,15 @@ void calculateJacobian(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 		       Teuchos::SerialDenseVector<int, double>& myTargetsCalculated, 
 		       Teuchos::SerialDenseVector<int, double>& myUnperturbedTargetsCalculated,
 		       Teuchos::SerialDenseVector<int, double>& myCurrentGuess, 
-		       void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, const Teuchos::SerialDenseVector<int, double>&, Teuchos::SerialDenseVector<int, double>&),
-		       Teuchos::BLAS<int, double>& myBLAS);
+		       void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, const Teuchos::SerialDenseVector<int, double>&, Teuchos::SerialDenseVector<int, double>&));
 
 void updateGuess(Teuchos::SerialDenseVector<int, double>& myCurrentGuess,
-		Teuchos::SerialDenseVector<int, double>& myGuessAdjustment,
 		Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
 		Teuchos::SerialDenseMatrix<int, double>& myJacobian,
-		Teuchos::LAPACK<int, double>& myLAPACK,
-		Teuchos::SerialDenseSolver<int, double>& mySolver,
-		Teuchos::BLAS<int, double>& myBLAS); 
+		Teuchos::LAPACK<int, double>& myLAPACK);
 
 void calculateResidual(const Teuchos::SerialDenseVector<int, double>& myTargetsDesired, 
-		       const Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
-		       Teuchos::BLAS<int, double>& myBLAS,
+		       Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
 		       double& myError);
 
 int main(int argc, char* argv[])
@@ -74,8 +67,6 @@ int main(int argc, char* argv[])
 	//Create an object to allow access to LAPACK using a library found in Trilinos
 	//
 	Teuchos::LAPACK<int, double> Teuchos_LAPACK_Object;	
-	Teuchos::SerialDenseSolver<int, double> solver;
-	Teuchos::BLAS<int, double> Teuchos_BLAS_Object;
 
 	//The problem being solved is to find the intersection of three infinite paraboloids:
 	//(x-1)^2 + y^2 + z = 0
@@ -95,6 +86,9 @@ int main(int argc, char* argv[])
 	Teuchos::SerialDenseVector<int, double> currentGuess(NUMDIMENSIONS);
 	Teuchos::SerialDenseVector<int, double> guessAdjustment(NUMDIMENSIONS);
 
+	currentGuess[0] = 2.0;
+	currentGuess[1] = 1.0;
+	currentGuess[2] = 1.0;
 	//Place to store our tangent-stiffness matrix or Jacobian
 	//One element for every combination of dependent variable with independent variable
 	Teuchos::SerialDenseMatrix<int, double> jacobian(NUMDIMENSIONS, NUMDIMENSIONS);
@@ -114,18 +108,14 @@ int main(int argc, char* argv[])
 				  targetsCalculated,
 				  unperturbedTargetsCalculated,
 				  currentGuess,
-                                  yourCalculateDependentVariables,
-				  Teuchos_BLAS_Object);
+                                  yourCalculateDependentVariables);
 
 
 		//Compute a guessChange and immediately set the currentGuess equal to the guessChange
  		updateGuess(currentGuess,
 			    targetsCalculated,
-			    guessAdjustment,
 			    jacobian,
-			    Teuchos_LAPACK_Object,
-			    solver,
-			    Teuchos_BLAS_Object);
+			    Teuchos_LAPACK_Object);
 
 
 		//Compute F(x) with the updated, currentGuess
@@ -137,7 +127,6 @@ int main(int argc, char* argv[])
 		//Calculate the L2 norm of Ftarget - F(xCurrentGuess)
 		calculateResidual(targetsDesired,
 			          targetsCalculated,
-				  Teuchos_BLAS_Object,
 			  	  error);	  
 
 
@@ -176,8 +165,8 @@ void calculateJacobian(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 		       Teuchos::SerialDenseVector<int, double>& myTargetsCalculated, 
 		       Teuchos::SerialDenseVector<int, double>& myUnperturbedTargetsCalculated,
 		       Teuchos::SerialDenseVector<int, double>& myCurrentGuess, 
-		       void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, const Teuchos::SerialDenseVector<int, double>&, Teuchos::SerialDenseVector<int, double>&),
-			Teuchos::BLAS<int, double>& myBLAS)
+		       void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, const Teuchos::SerialDenseVector<int, double>&, Teuchos::SerialDenseVector<int, double>&)
+		)
 {
 
 	//Calculate a temporary, unperturbed target evaluation, such as is needed for the finite-difference
@@ -203,10 +192,12 @@ void calculateJacobian(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 
 			
 		//Do forward difference: subtraction 
-		myBLAS.AXPY(NUMDIMENSIONS, -1.0, myUnperturbedTargetsCalculated.values(), myUnperturbedTargetsCalculated.stride(), myTargetsCalculated.values(), myTargetsCalculated.stride());
+		//myBLAS.AXPY(NUMDIMENSIONS, -1.0, myUnperturbedTargetsCalculated.values(), 1, myTargetsCalculated.values(),1);
+		myTargetsCalculated -= myUnperturbedTargetsCalculated;
 
 		//Do forward difference: divide by step size
-		myBLAS.SCAL(NUMDIMENSIONS, pow(PROBEDISTANCE, -1.0), myTargetsCalculated.values(), myTargetsCalculated.stride());
+		//myBLAS.SCAL(NUMDIMENSIONS, pow(PROBEDISTANCE, -1.0), myTargetsCalculated.values(), 1);
+		myTargetsCalculated *= pow(PROBEDISTANCE, -1.0);
 
 		for(int row = 0; row < NUMDIMENSIONS; row ++)
 		{
@@ -217,49 +208,42 @@ void calculateJacobian(const Teuchos::SerialDenseMatrix<int, double>& myOffsets,
 	}
 
 	//Reset to unperturbed, so we dont waste a function evaluation
-	myBLAS.COPY(NUMDIMENSIONS, myTargetsCalculated.values(), myTargetsCalculated.stride(), myUnperturbedTargetsCalculated.values(), myUnperturbedTargetsCalculated.stride());
+	
+	myTargetsCalculated *= 0.0;
+	myTargetsCalculated += myUnperturbedTargetsCalculated;
+	std::cout << myTargetsCalculated << std::endl;
 
 }
 
 void updateGuess(Teuchos::SerialDenseVector<int, double>& myCurrentGuess,
-		Teuchos::SerialDenseVector<int, double>& myGuessAdjustment,
 		Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
 		Teuchos::SerialDenseMatrix<int, double>& myJacobian, 
-		Teuchos::LAPACK<int, double>& myLAPACK,
-		Teuchos::SerialDenseSolver<int, double>& mySolver,
-		Teuchos::BLAS<int, double>& myBLAS
+		Teuchos::LAPACK<int, double>& myLAPACK
 		 )
 {
 	//v = J(inverse) * (-F(x))
 	//new guess = v + old guess
+	myTargetsCalculated *= -1.0;
 
-	myBLAS.SCAL(NUMDIMENSIONS, -1.0, myTargetsCalculated.values(), myTargetsCalculated.stride());
 	//Perform an LU factorization of this matrix. 
 	int ipiv[NUMDIMENSIONS], info;
 	char TRANS = 'N';
-//	myLAPACK.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, myJacobian.values(), myJacobian.stride(), ipiv, &info ); 
-	// Solve the linear system.
-//	myLAPACK.GETRS( TRANS, NUMDIMENSIONS, 1, myJacobian.values(), myJacobian.stride(), ipiv, myTargetsCalculated.values(), myTargetsCalculated.stride(), &info );  
-	//We have overwritten myTargetsCalculated with guess update values
-	Teuchos::RCP<Teuchos::SerialDenseMatrix<int, double> > A_ptr = Teuchos::rcpFromRef(myJacobian);
-	Teuchos::RCP<Teuchos::SerialDenseVector<int, double> > x_ptr = Teuchos::rcpFromRef(myGuessAdjustment);
-	Teuchos::RCP<Teuchos::SerialDenseVector<int, double> > b_ptr = Teuchos::rcpFromRef(myTargetsCalculated);
-	mySolver.setMatrix(A_ptr);
-	mySolver.setVectors(x_ptr, b_ptr);
-	mySolver.solve();
-	
-	myBLAS.AXPY(NUMDIMENSIONS, 1.0, myGuessAdjustment.values(), myGuessAdjustment.stride(), myCurrentGuess.values(), myCurrentGuess.stride());
+	myLAPACK.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, myJacobian.values(), myJacobian.stride(), ipiv, &info ); 
 
+	// Solve the linear system.
+	myLAPACK.GETRS( TRANS, NUMDIMENSIONS, 1, myJacobian.values(), myJacobian.stride(),
+		       	ipiv, myTargetsCalculated.values(), myTargetsCalculated.stride(), &info );  
+
+	//We have overwritten myTargetsCalculated with guess update values
+	//myBLAS.AXPY(NUMDIMENSIONS, 1.0, myGuessAdjustment.values(), 1, myCurrentGuess.values(), 1);
+	myCurrentGuess += myTargetsCalculated;
 }
 
 void calculateResidual(const Teuchos::SerialDenseVector<int, double>& myTargetsDesired, 
-		       const Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
-		       Teuchos::BLAS<int, double>& myBLAS,
+		       Teuchos::SerialDenseVector<int, double>& myTargetsCalculated,
 		       double& myError)
 {
 	//error is the l2 norm of the difference from my state to my target
-	myBLAS.AXPY(NUMDIMENSIONS, -1.0,  myTargetsDesired.values(), myTargetsDesired.stride(), myTargetsCalculated.values(), myTargetsCalculated.stride());
-
-
-        myError = myBLAS.NRM2(NUMDIMENSIONS, myTargetsCalculated.values(), myTargetsCalculated.stride());
+	myTargetsCalculated -= myTargetsDesired;
+	myError = pow(myTargetsCalculated.dot(myTargetsCalculated), .5);
 }

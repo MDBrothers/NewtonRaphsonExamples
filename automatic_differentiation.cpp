@@ -20,38 +20,6 @@ x^2 + y^2 -(z+1) = 0
 x^2 + y^2 +(z-1) = 0
 
 They should intersect at the point (1, 0, 0)
-
-The method "calculateDependentVariables" is specific to this problem, however everything else is largely general.
-
-The method "calculateJacobian" demonstrates the use of the forward automatic differentiation technique:
-1)Model evalution is computed, where special datatypes are used for independent and dependent variables 
-2)Stored partial derivatives are accessed and the jacobian is populated
-
-The Jacobian matrix looks like this:
-dE1/dx | dE1/dy | dE1/dz
-------------------------
-dE2/dx | dE2/dy | dE2/dz
-------------------------
-dE3/dx | dE3/dy | dE3/dz
-
-The Newton Raphson scheme works like this:
-1)Guess a x,y,z to satisfy all equations
-2)Evaluate all equations and store their results
-3)At the location of your guess point x,y,z compute a tangent-stiffness matrix (Jacobian)
-4)Don't do 4, but generally: guess_new = guess_current + inverse_of_Jacobian * -1.0 * equations_results_from_guess_current
-5)guess_new - guess_current = update_ammount; Jacobian * update_amount = -1.0 * equations_results_from_guess_current
-6)Therefor, solve for update_amount using 5 rather than invert the Jacobian. This is much faster.
-7)Loop back to step 1 and carry out subsequent steps until equations_results_from_guess_current is close to your target as desired
---or-- the maximum number of iterations allowable has been exceeded according to your criteria.
-
-####Dependencies:
-The "Trilinos" C++ API including the "Teuchos" and "Sacado" packages handle the automatic differentiation implementation.
-Only the forward AD portion of Sacado is used in this example. 
-Part of Teuchos are used for linear solves.
-
-For installation instructions and sourcecode, visit: http://trilinos.sandia.gov/
-
-As of 20 Aug. 2013, Armadillo can be obtained at: http://arma.sourceforge.net/
 */
 
 #include <iostream>
