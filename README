@@ -17,11 +17,14 @@ expansion.
 All three examples were written and tested on a system running
 Ubuntu Linux 13.04 64bit with GCC 4.7 for compiler.
 
-The examples depend on the Armadillo API, available at sourceforge.net, as well
-as the Trilinos API with Teuchos and Sacado packages, available at
+Used Trilinos API with Teuchos and Sacado packages, available at
 trilinos.sandia.gov.
+
+Requires Teuchos be compiled with complex number support.
 
 NOTES:
 
-24 AUG. 2013: Michael:
-I've noticed that the error calculation isn't right. I am also in the process of removing the dependency on armadillo. This means that only the first commits of the files amount to a working example. The transistioning and debugging will be complete soon and hopefully result in easier to build and more applicable code.
+24 AUG. 2013: Michael: 
+Completed removing dependency on Armadillo API. Fixed
+error calculation mistakes. AD example accuracy somehow below that of the other
+two examples.
