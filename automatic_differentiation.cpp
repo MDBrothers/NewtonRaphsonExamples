@@ -185,10 +185,9 @@ void calculateJacobian(const std::valarray<F>& myOffsets,
 	//	dF0/dx0 dF0/dx1 
 	//	dF1/dx0 dF1/dx1
 	//
+    //
 	for(int j = 0; j< NUMDIMENSIONS; j++)
 	{
-
-		myCalculateDependentVariables(myOffsets, myCurrentGuess, myTargetsCalculated);
 
 		//extract the derivatives computed for us by the AD system
 		for(int i = 0; i < NUMDIMENSIONS; i++)
