@@ -28,3 +28,12 @@ NOTES:
 Completed removing dependency on Armadillo API. Fixed
 error calculation mistakes. AD example accuracy somehow below that of the other
 two examples.
+
+30 AUG. 2013: Michael:
+Rewrote the example project as a header library NewtonRaphson.hpp. examples.cpp shows how to use the
+library as a more general purpose NR solver, with your choice of three differentiation methods. Simply
+write your own model evaluation function having the same parameters as the example function which
+matches your desired differentiation technique. Other requirements are hopefully not too difficult to
+figure out. 
+
+
