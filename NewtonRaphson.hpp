@@ -75,13 +75,15 @@ namespace NRNameSpace{
             }
 
             void updateGuess(Teuchos::SerialDenseVector<int, double >& currentGuesses,
-                    Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
                     Teuchos::LAPACK<int, double>& lapack)
             {
                 //v = J(inverse) * (-F(x))
                 //new guess = v + old guess
-                targetsCalculated *= -1.0;
+                scratch = 0.0;
+                scratch -= targetsCalculated;
 
                 //Perform an LU factorization of this matrix. 
                 int ipiv[targetsCalculated.length()], info;
@@ -90,11 +92,11 @@ namespace NRNameSpace{
 
                 // Solve the linear system.
                 lapack.GETRS( TRANS, targetsCalculated.length(), 1, jacobian.values(), jacobian.stride(),
-                            ipiv, targetsCalculated.values(), targetsCalculated.stride(), &info );  
+                            ipiv, scratch.values(), scratch.stride(), &info );  
 
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
-                currentGuesses += targetsCalculated;
+                currentGuesses += scratch;
             }
 
             void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
@@ -153,6 +155,7 @@ namespace NRNameSpace{
 
                     updateGuess(myCurrentGuesses,
                              myTargetsCalculated,
+                             myScratchReal,
                             myJacobian,
                             LAPACK);
 
@@ -503,15 +506,17 @@ namespace NRNameSpace{
                                         const Teuchos::SerialDenseVector<int, double>&);
             
             void updateGuess(Teuchos::SerialDenseVector<int, double >& currentGuesses,
-                    Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
                     Teuchos::LAPACK<int, double>& lapack)
             {
 
-                currentGuesses[0] += (-targetsCalculated[0]/jacobian(0,0));
+                //currentGuesses[0] += (-targetsCalculated[0]/jacobian(0,0));
                 //v = J(inverse) * (-F(x))
                 //new guess = v + old guess
-                targetsCalculated *= -1.0;
+                scratch = 0.0;
+                scratch -= targetsCalculated;
 
                 //Perform an LU factorization of this matrix. 
                 int ipiv[targetsCalculated.length()], info;
@@ -520,11 +525,11 @@ namespace NRNameSpace{
 
                 // Solve the linear system.
                 lapack.GETRS( TRANS, targetsCalculated.length(), 1, jacobian.values(), jacobian.stride(),
-                            ipiv, targetsCalculated.values(), targetsCalculated.stride(), &info );  
+                            ipiv, scratch.values(), scratch.stride(), &info );  
 
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
-                //currentGuesses += targetsCalculated;
+                currentGuesses += scratch;
             }
 
             void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
@@ -588,6 +593,7 @@ namespace NRNameSpace{
 
                     updateGuess(myCurrentGuesses,
                              myTargetsCalculated,
+                             myScratchReal,
                             myJacobian,
                             LAPACK);
 
