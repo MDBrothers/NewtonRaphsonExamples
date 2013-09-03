@@ -18,7 +18,6 @@ namespace NRNameSpace{
 	class NewtonRaphsonProblem 
 	{
 		public:
-			int NUMDIMENSIONS;
 			double myError;
 
 			Teuchos::SerialDenseMatrix<int, double> myJacobian;
@@ -54,7 +53,7 @@ namespace NRNameSpace{
                 myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets);
                 double oldGuessValue = 0.0;
 
-                for(int column = 0; column < NUMDIMENSIONS; column++)
+                for(int column = 0; column < targetsCalculated.length(); column++)
                 {
                     //Store old guess vector element value, perturb the current value
                     oldGuessValue = currentGuesses[column];
@@ -65,7 +64,7 @@ namespace NRNameSpace{
                     targetsCalculated -= unperturbedTargets;
                     targetsCalculated *= pow(PROBELENGTH, -1.0);
 
-                    for(int row = 0; row < NUMDIMENSIONS; row ++)
+                    for(int row = 0; row < targetsCalculated.length(); row ++)
                     {
                         jacobian(row, column) = targetsCalculated[row];
                     }
@@ -85,12 +84,12 @@ namespace NRNameSpace{
                 targetsCalculated *= -1.0;
 
                 //Perform an LU factorization of this matrix. 
-                int ipiv[NUMDIMENSIONS], info;
+                int ipiv[targetsCalculated.length()], info;
                 char TRANS = 'N';
-                lapack.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, jacobian.values(), jacobian.stride(), ipiv, &info ); 
+                lapack.GETRF( targetsCalculated.length(), targetsCalculated.length(), jacobian.values(), jacobian.stride(), ipiv, &info ); 
 
                 // Solve the linear system.
-                lapack.GETRS( TRANS, NUMDIMENSIONS, 1, jacobian.values(), jacobian.stride(),
+                lapack.GETRS( TRANS, targetsCalculated.length(), 1, jacobian.values(), jacobian.stride(),
                             ipiv, targetsCalculated.values(), targetsCalculated.stride(), &info );  
 
                 //We have overwritten targetsCalculated with guess update values
@@ -105,7 +104,7 @@ namespace NRNameSpace{
             {
                 //error is the l2 norm of the difference from my current results to my desired
                 //results 
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.length(); i++)
                 {
                     scratch[i] = targetsCalculated[i] - targetsDesired[i];
                 }
@@ -113,21 +112,19 @@ namespace NRNameSpace{
             }
 
 		public:
-			NRForwardDifference(const int MYNUMDIMENSIONS,
-					    const Teuchos::SerialDenseVector<int, double >& initialGuess,
+			NRForwardDifference(const Teuchos::SerialDenseVector<int, double >& initialGuess,
 					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
 					    const Teuchos::SerialDenseMatrix<int, double>& constants,
 					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const Teuchos::SerialDenseVector<int, double >&, 
 									       Teuchos::SerialDenseVector<int, double >&))
 			{
-                NUMDIMENSIONS = MYNUMDIMENSIONS;
-                myCurrentGuesses.resize(NUMDIMENSIONS);
-                myTargetsDesired.resize(NUMDIMENSIONS);
-                myTargetsCalculated.resize(NUMDIMENSIONS);
-                myScratchReal.resize(NUMDIMENSIONS);
-                myJacobian.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
-                myConstants.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
 
                 myCurrentGuesses = initialGuess;
                 myTargetsDesired = targetsDesired;
@@ -170,7 +167,11 @@ namespace NRNameSpace{
                 
                 std::cout << "******************************************" << std::endl;
                 std::cout << "Number of iterations: " << count << std::endl;
-                std::cout << "Final guess:\n x, y, z\n " << myCurrentGuesses[0] << ", " << myCurrentGuesses[1] << ", " << myCurrentGuesses[2] << std::endl;
+                std::cout << "Final Guess:" << std::endl;
+                for(int i = 0; i < myCurrentGuesses.length(); i++)
+                {
+                    std::cout << "Dim: " << i << ", Value: " << myCurrentGuesses[i] << std::endl;
+                }
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
@@ -202,7 +203,7 @@ namespace NRNameSpace{
                 myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets);
                 std::complex< double> oldGuessValue;
 
-                for(int column = 0; column < NUMDIMENSIONS; column++)
+                for(int column = 0; column < targetsCalculated.length(); column++)
                 {
                     //Store old element value, perturb the current value
                     oldGuessValue = currentGuesses[column];
@@ -214,7 +215,7 @@ namespace NRNameSpace{
                     //Divide each element by PROBELENGTH
                     targetsCalculated *= pow(PROBELENGTH, -1.0);
 
-                    for(int row = 0; row < NUMDIMENSIONS; row ++)
+                    for(int row = 0; row < targetsCalculated.length(); row ++)
                     {
                         //Complete expressing the CTSE formula and take the magnitudes of
                         //the imaginary parts of targetsCalculated as derivatives wrt, the
@@ -235,22 +236,22 @@ namespace NRNameSpace{
             {
                 //v = J(inverse) * (-F(x))
                 //new guess = v + old guess
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.length(); i++)
                 {
                     scratch[i] = -std::real(targetsCalculated[i]);
                 }
 
                 //Perform an LU factorization of this matrix. 
-                int ipiv[NUMDIMENSIONS], info;
+                int ipiv[targetsCalculated.length()], info;
                 char TRANS = 'N';
-                lapack.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, jacobian.values(), jacobian.stride(), ipiv, &info ); 
+                lapack.GETRF( targetsCalculated.length(), targetsCalculated.length(), jacobian.values(), jacobian.stride(), ipiv, &info ); 
 
                 // Solve the linear system.
-                lapack.GETRS( TRANS, NUMDIMENSIONS, 1, jacobian.values(), jacobian.stride(),
+                lapack.GETRS( TRANS, targetsCalculated.length(), 1, jacobian.values(), jacobian.stride(),
                             ipiv, scratch.values(), scratch.stride(), &info );  
 
                 //We have overwritten targetsCalculated with guess update values
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.length(); i++)
                 {
                     currentGuesses[i] += scratch[i];
                 }
@@ -262,7 +263,7 @@ namespace NRNameSpace{
                             double& error)
             {
                 //error is the l2 norm of the difference from my state to my target
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.length(); i++)
                 {
                     scratch[i] = std::real(targetsCalculated[i]) - targetsDesired[i];
                 }
@@ -270,25 +271,24 @@ namespace NRNameSpace{
             }
             
 		public:
-			NRComplexStep(const int MYNUMDIMENSIONS,
-					    const Teuchos::SerialDenseVector<int, std::complex<double> >& initialGuess,
+			NRComplexStep(const Teuchos::SerialDenseVector<int, std::complex<double> >& initialGuess,
 					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
 					    const Teuchos::SerialDenseMatrix<int, double>& constants,
 					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const Teuchos::SerialDenseVector<int, std::complex<double> >&, 
 									       Teuchos::SerialDenseVector<int, std::complex<double> >&))
 			{
-                NUMDIMENSIONS = MYNUMDIMENSIONS;
-                myCurrentGuesses.resize(NUMDIMENSIONS);
-                myTargetsDesired.resize(NUMDIMENSIONS);
-                myTargetsCalculated.resize(NUMDIMENSIONS);
-                myScratchReal.resize(NUMDIMENSIONS);
-                myScratchComplex.resize(NUMDIMENSIONS);
-                myJacobian.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
-                myConstants.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myScratchComplex.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
 
                 myCurrentGuesses = initialGuess;
                 myTargetsDesired = targetsDesired;
+
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
                 myConstants = constants;
 	            myCalculateDependentVariables = yourCalculateDependentVariables;
 
@@ -331,7 +331,12 @@ namespace NRNameSpace{
                 
                 std::cout << "******************************************" << std::endl;
                 std::cout << "Number of iterations: " << count << std::endl;
-                std::cout << "Final guess:\n x, y, z\n " << std::real(myCurrentGuesses[0]) << ", " << std::real(myCurrentGuesses[1]) << ", " << std::real(myCurrentGuesses[2]) << std::endl;
+                std::cout << "Final Guess:" << std::endl;
+                for(int i = 0; i < myCurrentGuesses.length(); i++)
+                {
+                    std::cout << "Dim: " << i << ", Value: " << std::real(myCurrentGuesses[i]) << std::endl;
+                }
+
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
@@ -360,9 +365,9 @@ namespace NRNameSpace{
             {
                 myCalculateDependentVariables(constants, currentGuesses, targetsCalculated);
 
-                for(int column = 0; column < NUMDIMENSIONS; column++)
+                for(int column = 0; column < targetsCalculated.size(); column++)
                 {
-                    for(int row = 0; row < NUMDIMENSIONS; row ++)
+                    for(int row = 0; row < targetsCalculated.size(); row ++)
                     {
                         jacobian(row, column) = targetsCalculated[row].dx(column);
                     }
@@ -377,22 +382,22 @@ namespace NRNameSpace{
             {
                 //v = J(inverse) * (-F(x))
                 //new guess = v + old guess
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.size(); i++)
                 {
                     scratch[i] = -targetsCalculated[i].val();
                 }
 
                 //Perform an LU factorization of this matrix. 
-                int ipiv[NUMDIMENSIONS], info;
+                int ipiv[targetsCalculated.size()], info;
                 char TRANS = 'N';
-                lapack.GETRF( NUMDIMENSIONS, NUMDIMENSIONS, jacobian.values(), jacobian.stride(), ipiv, &info ); 
+                lapack.GETRF( targetsCalculated.size(), targetsCalculated.size(), jacobian.values(), jacobian.stride(), ipiv, &info ); 
 
                 // Solve the linear system.
-                lapack.GETRS( TRANS, NUMDIMENSIONS, 1, jacobian.values(), jacobian.stride(),
+                lapack.GETRS( TRANS, targetsCalculated.size(), 1, jacobian.values(), jacobian.stride(),
                             ipiv, scratch.values(), scratch.stride(), &info );  
 
                 //We have overwritten scratch 
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.size(); i++)
                 {
                     currentGuesses[i] += scratch[i];
                 }
@@ -404,7 +409,7 @@ namespace NRNameSpace{
                             double& error)
             {
                 //error is the l2 norm of the difference from my state to my target
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                for(int i = 0; i < targetsCalculated.size(); i++)
                 {
                     scratch[i] = targetsCalculated[i].val() - targetsDesired[i];
                 }
@@ -413,26 +418,25 @@ namespace NRNameSpace{
 
             
 		public:
-			NRAutomaticDifferentiation(const int MYNUMDIMENSIONS,
-					    const Teuchos::SerialDenseVector<int, double >& initialGuess,
-					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
-					    const Teuchos::SerialDenseMatrix<int, double>& constants,
-					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+			NRAutomaticDifferentiation(const Teuchos::SerialDenseVector<int, double >& initialGuess,
+					                   const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+					                   const Teuchos::SerialDenseMatrix<int, double>& constants,
+					                   void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const std::vector<F>&, 
 									       std::vector<F>&))
 			{
-                NUMDIMENSIONS = MYNUMDIMENSIONS;
-                myTargetsDesired.resize(NUMDIMENSIONS);
-                myScratchReal.resize(NUMDIMENSIONS);
-                myJacobian.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
-                myConstants.shapeUninitialized(NUMDIMENSIONS, NUMDIMENSIONS);
+                myTargetsDesired.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
 
-                myCurrentGuesses.resize(NUMDIMENSIONS);
-                myTargetsCalculated.resize(NUMDIMENSIONS);
-                for(int i = 0; i < NUMDIMENSIONS; i++)
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                for(int i = 0; i < targetsDesired.length(); i++)
                 {
                     myCurrentGuesses[i] =initialGuess[i];
-                    myCurrentGuesses[i].diff(i, NUMDIMENSIONS);
+                    myCurrentGuesses[i].diff(i, targetsDesired.length());
                 }
 
                 myTargetsDesired = targetsDesired;
@@ -473,10 +477,141 @@ namespace NRNameSpace{
                 }
                 std::cout << "******************************************" << std::endl;
                 std::cout << "Number of iterations: " << count << std::endl;
-                std::cout << "Final guess:\n x, y, z\n " << myCurrentGuesses[0].val() << ", " << myCurrentGuesses[1].val() << ", " << myCurrentGuesses[2].val() << std::endl;
+                std::cout << "Final Guess:" << std::endl;
+                for(int i = 0; i < myCurrentGuesses.size(); i++)
+                {
+                    std::cout << "Dim: " << i << ", Value: " << myCurrentGuesses[i].val() << std::endl;
+                }
+
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
 	};
+
+	class NRUserSupplied: private NewtonRaphsonProblem 
+	{
+		private:
+			Teuchos::SerialDenseVector<int, double > myCurrentGuesses;
+			Teuchos::SerialDenseVector<int, double > myTargetsCalculated;
+
+	        void (*myCalculateDependentVariables)(const Teuchos::SerialDenseMatrix<int, double>&, 
+                                                 const Teuchos::SerialDenseVector<int, double >&, 
+									                Teuchos::SerialDenseVector<int, double >&);            
+
+            void (*myCalculateJacobian)(const Teuchos::SerialDenseMatrix<int, double>&, 
+                                        Teuchos::SerialDenseMatrix<int, double>&, 
+                                        const Teuchos::SerialDenseVector<int, double>&);
+            
+            void updateGuess(Teuchos::SerialDenseVector<int, double >& currentGuesses,
+                    Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    Teuchos::SerialDenseMatrix<int, double>& jacobian, 
+                    Teuchos::LAPACK<int, double>& lapack)
+            {
+
+                currentGuesses[0] += (-targetsCalculated[0]/jacobian(0,0));
+                //v = J(inverse) * (-F(x))
+                //new guess = v + old guess
+                targetsCalculated *= -1.0;
+
+                //Perform an LU factorization of this matrix. 
+                int ipiv[targetsCalculated.length()], info;
+                char TRANS = 'N';
+                lapack.GETRF( targetsCalculated.length(), targetsCalculated.length(), jacobian.values(), jacobian.stride(), ipiv, &info ); 
+
+                // Solve the linear system.
+                lapack.GETRS( TRANS, targetsCalculated.length(), 1, jacobian.values(), jacobian.stride(),
+                            ipiv, targetsCalculated.values(), targetsCalculated.stride(), &info );  
+
+                //We have overwritten targetsCalculated with guess update values
+                //Now update current guesses
+                //currentGuesses += targetsCalculated;
+            }
+
+            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
+                                   const Teuchos::SerialDenseVector<int, double>& targetsCalculated,
+                            Teuchos::SerialDenseVector<int, double>& scratch,
+                            double& error)
+            {
+                //error is the l2 norm of the difference from my current results to my desired
+                //results 
+                for(int i = 0; i < targetsCalculated.length(); i++)
+                {
+                    scratch[i] = targetsCalculated[i] - targetsDesired[i];
+                }
+                error = sqrt(scratch.dot(scratch));
+            }
+
+		public:
+			NRUserSupplied(const Teuchos::SerialDenseVector<int, double >& initialGuess,
+					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+					    const Teuchos::SerialDenseMatrix<int, double>& constants,
+					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+									       const Teuchos::SerialDenseVector<int, double >&, 
+									       Teuchos::SerialDenseVector<int, double >&),
+                        void yourCalculateJacobian(const Teuchos::SerialDenseMatrix<int, double>&, 
+                                                         Teuchos::SerialDenseMatrix<int, double>&, 
+                                                   const Teuchos::SerialDenseVector<int, double>&))
+
+			{
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(myTargetsDesired.length(), myCurrentGuesses.length());
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+                myConstants = constants;
+
+                myCurrentGuesses = initialGuess;
+                myTargetsDesired = targetsDesired;
+	            myCalculateDependentVariables = yourCalculateDependentVariables;
+	            myCalculateJacobian = yourCalculateJacobian;
+			};
+
+            void solve(const int MAXITERATIONS, const double ERRORTOLLERANCE)
+            {
+                int count = 0;
+                double error = 1.0E5;
+
+                std::cout << "******************************************" << std::endl;
+                std::cout <<  "User supplied Jacobian" << std::endl;
+
+                while(count < MAXITERATIONS and error > ERRORTOLLERANCE)
+                {
+
+                    myCalculateDependentVariables(myConstants,
+                                                  myCurrentGuesses,
+                                                  myTargetsCalculated);
+
+                    myCalculateJacobian(myConstants,
+                                        myJacobian,
+                                        myCurrentGuesses);
+
+                    updateGuess(myCurrentGuesses,
+                             myTargetsCalculated,
+                            myJacobian,
+                            LAPACK);
+
+                    calculateResidual(myTargetsDesired,
+                                  myTargetsCalculated,
+                                  myScratchReal,
+                              error);	  
+
+                    count ++;
+                    std::cout << "Residual Error: " << error << std::endl;
+                }
+                
+                std::cout << "******************************************" << std::endl;
+                std::cout << "Number of iterations: " << count << std::endl;
+                 std::cout << "Final Guess:" << std::endl;
+                for(int i = 0; i < myCurrentGuesses.length(); i++)
+                {
+                    std::cout << "Dim: " << i << ", Value: " << myCurrentGuesses[i] << std::endl;
+                }
+
+                std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
+                std::cout << "Final error: " << error << std::endl;
+            }
+	};
+
 }
 

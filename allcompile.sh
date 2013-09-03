@@ -5,3 +5,5 @@
 
 g++ NRexamples.cpp -lteuchos -lblas -llapack -o NRexamples.exe
 
+g++ NRComparison.cpp -lteuchos -lblas -llapack -o NRComparison.exe
+
