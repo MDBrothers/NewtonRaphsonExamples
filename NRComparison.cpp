@@ -215,4 +215,5 @@ void CalcJacobian(const Teuchos::SerialDenseMatrix<int, double>& constants,
             jacobian(0,0) = 1.5*Rigidity*pow(CosPhi,2.0)*
                             (Displacement*pow(OriginalLength, -1.0)*pow(CosPhi, 2.0) -2.0*SinPhi)*
                             Displacement*pow(OriginalLength, -2.0) + kSpring + Rigidity*pow(SinPhi,2.0)*pow(OriginalLength, -1.0); 
+            std::cout << jacobian(0,0) << std::endl;
         }

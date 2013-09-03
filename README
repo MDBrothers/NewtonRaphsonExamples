@@ -36,4 +36,10 @@ write your own model evaluation function having the same parameters as the examp
 matches your desired differentiation technique. Other requirements are hopefully not too difficult to
 figure out. 
 
-
+3 SEPT. 2013: Michael:
+Added another tuning parameter to the solvers, alpha which scales the update amount added to the
+guess vector. 
+Added another example, NRComparison, based on a set of equations found in "The dynamic
+relaxation method using new formulation for ficticious mass and damping" by M. Rezalee-pajand and J.
+Alamatian, who in turn took them from “Dynamic relaxation. computational method for transient
+analysis” attributed to an "Underwood", 1983. Example still being worked on. 
