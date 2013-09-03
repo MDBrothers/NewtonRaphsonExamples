@@ -74,7 +74,8 @@ namespace NRNameSpace{
                 targetsCalculated = unperturbedTargets;
             }
 
-            void updateGuess(Teuchos::SerialDenseVector<int, double >& currentGuesses,
+            void updateGuess(const double UPDATEMULTIPLIER,
+                    Teuchos::SerialDenseVector<int, double >& currentGuesses,
                     const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
@@ -96,6 +97,7 @@ namespace NRNameSpace{
 
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
+                scratch *= UPDATEMULTIPLIER;
                 currentGuesses += scratch;
             }
 
@@ -134,7 +136,7 @@ namespace NRNameSpace{
 	            myCalculateDependentVariables = yourCalculateDependentVariables;
 			};
 
-            void solve(const int MAXITERATIONS, const double ERRORTOLLERANCE, const double PROBELENGTH)
+            void solve(const double UPDATEMULTIPLIER, const int MAXITERATIONS, const double ERRORTOLLERANCE, const double PROBELENGTH)
             {
                 int count = 0;
                 double error = 1.0E5;
@@ -153,7 +155,8 @@ namespace NRNameSpace{
                               myScratchReal,
                               myCalculateDependentVariables);
 
-                    updateGuess(myCurrentGuesses,
+                    updateGuess(UPDATEMULTIPLIER,
+                            myCurrentGuesses,
                              myTargetsCalculated,
                              myScratchReal,
                             myJacobian,
@@ -165,7 +168,7 @@ namespace NRNameSpace{
                               error);	  
 
                     count ++;
-                    std::cout << "Residual Error: " << error << std::endl;
+                    //std::cout << "Residual Error: " << error << std::endl;
                 }
                 
                 std::cout << "******************************************" << std::endl;
@@ -231,7 +234,8 @@ namespace NRNameSpace{
                 targetsCalculated = unperturbedTargets;
             }
 
-            void updateGuess(Teuchos::SerialDenseVector<int, std::complex< double> >& currentGuesses,
+            void updateGuess(const double UPDATEMULTIPLIER,
+                    Teuchos::SerialDenseVector<int, std::complex< double> >& currentGuesses,
                     Teuchos::SerialDenseVector<int, std::complex< double> >& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double>& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
@@ -256,7 +260,7 @@ namespace NRNameSpace{
                 //We have overwritten targetsCalculated with guess update values
                 for(int i = 0; i < targetsCalculated.length(); i++)
                 {
-                    currentGuesses[i] += scratch[i];
+                    currentGuesses[i] += UPDATEMULTIPLIER*scratch[i];
                 }
             }
 
@@ -297,7 +301,7 @@ namespace NRNameSpace{
 
 			};
 
-            void solve(const int MAXITERATIONS, const double ERRORTOLLERANCE, const double PROBELENGTH)
+            void solve(const double UPDATEMULTIPLIER, const int MAXITERATIONS, const double ERRORTOLLERANCE, const double PROBELENGTH)
             {
                 int count = 0;
                 double error = 1.0E5;
@@ -316,7 +320,8 @@ namespace NRNameSpace{
                               myScratchComplex,
                               myCalculateDependentVariables);
 
-                    updateGuess(myCurrentGuesses,
+                    updateGuess(UPDATEMULTIPLIER,
+                            myCurrentGuesses,
                              myTargetsCalculated,
                              myScratchReal,
                             myJacobian,
@@ -329,7 +334,7 @@ namespace NRNameSpace{
 
 
                     count ++;
-                    std::cout << "Residual Error: " << error << std::endl;
+                    //std::cout << "Residual Error: " << error << std::endl;
                 }
                 
                 std::cout << "******************************************" << std::endl;
@@ -377,7 +382,8 @@ namespace NRNameSpace{
                 }
             }
 
-            void updateGuess(std::vector<F>& currentGuesses,
+            void updateGuess(const double UPDATEMULTIPLIER,
+                    std::vector<F>& currentGuesses,
                     std::vector<F>& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double>& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
@@ -402,7 +408,7 @@ namespace NRNameSpace{
                 //We have overwritten scratch 
                 for(int i = 0; i < targetsCalculated.size(); i++)
                 {
-                    currentGuesses[i] += scratch[i];
+                    currentGuesses[i] += UPDATEMULTIPLIER*scratch[i];
                 }
             }
 
@@ -447,7 +453,7 @@ namespace NRNameSpace{
 	            myCalculateDependentVariables = yourCalculateDependentVariables;
 			};
 
-            void solve(const int MAXITERATIONS, const double ERRORTOLLERANCE)
+            void solve(const double UPDATEMULTIPLIER, const int MAXITERATIONS, const double ERRORTOLLERANCE)
             {
                 int count = 0;
                 double error = 1.0E5;
@@ -463,7 +469,8 @@ namespace NRNameSpace{
                               myTargetsCalculated,
                               myCalculateDependentVariables);
 
-                    updateGuess(myCurrentGuesses,
+                    updateGuess(UPDATEMULTIPLIER,
+                            myCurrentGuesses,
                              myTargetsCalculated,
                              myScratchReal,
                             myJacobian,
@@ -476,7 +483,7 @@ namespace NRNameSpace{
 
                     count ++;
                     //If we have converged, or if we have exceeded our alloted number of iterations, discontinue the loop
-                    std::cout << "Residual Error: " << error << std::endl;
+                    //std::cout << "Residual Error: " << error << std::endl;
                 }
                 std::cout << "******************************************" << std::endl;
                 std::cout << "Number of iterations: " << count << std::endl;
@@ -505,7 +512,8 @@ namespace NRNameSpace{
                                         Teuchos::SerialDenseMatrix<int, double>&, 
                                         const Teuchos::SerialDenseVector<int, double>&);
             
-            void updateGuess(Teuchos::SerialDenseVector<int, double >& currentGuesses,
+            void updateGuess(const double UPDATEMULTIPLIER,
+                    Teuchos::SerialDenseVector<int, double >& currentGuesses,
                     const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
@@ -529,6 +537,7 @@ namespace NRNameSpace{
 
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
+                scratch *= UPDATEMULTIPLIER;
                 currentGuesses += scratch;
             }
 
@@ -572,7 +581,7 @@ namespace NRNameSpace{
 	            myCalculateJacobian = yourCalculateJacobian;
 			};
 
-            void solve(const int MAXITERATIONS, const double ERRORTOLLERANCE)
+            void solve(const double UPDATEMULTIPLIER, const int MAXITERATIONS, const double ERRORTOLLERANCE)
             {
                 int count = 0;
                 double error = 1.0E5;
@@ -591,7 +600,8 @@ namespace NRNameSpace{
                                         myJacobian,
                                         myCurrentGuesses);
 
-                    updateGuess(myCurrentGuesses,
+                    updateGuess(UPDATEMULTIPLIER,
+                             myCurrentGuesses,
                              myTargetsCalculated,
                              myScratchReal,
                             myJacobian,
@@ -603,7 +613,7 @@ namespace NRNameSpace{
                               error);	  
 
                     count ++;
-                    std::cout << "Residual Error: " << error << std::endl;
+             //       std::cout << "Residual Error: " << error << std::endl;
                 }
                 
                 std::cout << "******************************************" << std::endl;
