@@ -34,10 +34,13 @@ int main(int argc, char * argv[])
     Teuchos::SerialDenseVector<int, double>  yourTargetsDesired(1);
     Teuchos::SerialDenseMatrix<int, double>  yourConstants(1, 3);
 
+    const double FINAL_LOAD = 53.3808;
+    const double NUM_LOAD_STEPS = 12;
     yourInitialGuessCS = std::complex<double>(0.2, 0.0);
     yourInitialGuessAD = 0.2; //First guess is that the end of the truss bar will deflect 1 centimeter
     yourInitialGuessFD = yourInitialGuessAD;
-    yourTargetsDesired = 4.4484; //Load in Newtons
+
+    yourTargetsDesired = FINAL_LOAD / NUM_LOAD_STEPS; //Load in Newtons
     yourConstants = 0.0;
     yourConstants(0,0) = 44483985.77; //Rigidity in Newtons
     yourConstants(0,1) = sqrt(pow(2.54,2.0) + pow(254.0,2.0)); //Original Length of Truss bar in centimeters
@@ -107,10 +110,24 @@ int main(int argc, char * argv[])
 
         if(correctARGS)
         {
-            Apples.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE, PROBELENGTH);
-            Oranges.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE, PROBELENGTH);
-            Bananas.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE);
-            Watermelon.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE);
+            for(int loadStep = 0; loadStep < static_cast<int>(NUM_LOAD_STEPS); loadStep++)
+            {
+                std::cout << "#####################################################" <<std::endl;
+                std::cout << "##### Load Step: " << loadStep + 1 << " of " << static_cast<int>(NUM_LOAD_STEPS) << "." << std::endl;
+                std::cout << "##### Applied Load: ";
+                yourTargetsDesired = FINAL_LOAD/NUM_LOAD_STEPS *  static_cast<double>(loadStep + 1); 
+                std::cout << yourTargetsDesired[0] << " Newtons." << std::endl;
+
+                Apples.reinitializeSameModel(yourTargetsDesired);
+                Oranges.reinitializeSameModel(yourTargetsDesired);
+                Bananas.reinitializeSameModel(yourTargetsDesired);
+                Watermelon.reinitializeSameModel(yourTargetsDesired);
+
+                Apples.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE, PROBELENGTH);
+                Oranges.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE, PROBELENGTH);
+                Bananas.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE);
+                Watermelon.solve(UPDATEMULTIPLIER, MAXITERATIONS, ERRORTOLLERANCE);
+            }
         }
         else
         {

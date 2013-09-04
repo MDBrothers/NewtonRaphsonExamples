@@ -27,9 +27,17 @@ namespace NRNameSpace{
 			Teuchos::LAPACK<int, double> LAPACK;
 
 			NewtonRaphsonProblem(){};
+
+            bool reinitializeSameModel(const Teuchos::SerialDenseVector<int, double>& targetsDesired)
+            {
+                myTargetsDesired = targetsDesired;
+                myError = 1.E6;
+                return true;
+            };
+
 	};
 
-	class NRForwardDifference: private NewtonRaphsonProblem 
+	class NRForwardDifference: public NewtonRaphsonProblem 
 	{
 		private:
 			Teuchos::SerialDenseVector<int, double > myCurrentGuesses;
@@ -186,10 +194,41 @@ namespace NRNameSpace{
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
+
+
+            bool fullReinitialize(const Teuchos::SerialDenseVector<int, double>& initialGuess,
+					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+					    const Teuchos::SerialDenseMatrix<int, double>& constants,
+					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+									       const Teuchos::SerialDenseVector<int, double >&, 
+									       Teuchos::SerialDenseVector<int, double >&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
+			{
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+
+                myCurrentGuesses = initialGuess;
+                myTargetsDesired = targetsDesired;
+                myConstants = constants;
+	            myCalculateDependentVariables = yourCalculateDependentVariables;
+
+                return true;
+			};
+
+            const Teuchos::SerialDenseVector<int, double>& whatHaveIGuessed()
+            {
+                return myCurrentGuesses;
+            };
+
+       
 	};
 
 
-	class NRComplexStep: private NewtonRaphsonProblem 
+	class NRComplexStep: public NewtonRaphsonProblem 
 	{
 		private:
 			Teuchos::SerialDenseVector<int, std::complex<double> >  myScratchComplex;
@@ -359,9 +398,41 @@ namespace NRNameSpace{
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
+
+        	bool fullReinitialize(const Teuchos::SerialDenseVector<int, std::complex<double> >& initialGuess,
+					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+					    const Teuchos::SerialDenseMatrix<int, double>& constants,
+					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+									       const Teuchos::SerialDenseVector<int, std::complex<double> >&, 
+									       Teuchos::SerialDenseVector<int, std::complex<double> >&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
+			{
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myScratchComplex.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
+
+                myCurrentGuesses = initialGuess;
+                myTargetsDesired = targetsDesired;
+
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+                myConstants = constants;
+	            myCalculateDependentVariables = yourCalculateDependentVariables;
+
+			};
+
+            const Teuchos::SerialDenseVector<int, std::complex<double> >& whatHaveIGuessed()
+            {
+                return myCurrentGuesses;
+            };
+
+
+        
 	};
 
-	class NRAutomaticDifferentiation: private NewtonRaphsonProblem 
+	class NRAutomaticDifferentiation: public NewtonRaphsonProblem 
 	{
 
 		private:
@@ -513,9 +584,50 @@ namespace NRNameSpace{
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
+
+            bool fullReinitialize(const Teuchos::SerialDenseVector<int, double>& initialGuess,
+                              const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+                              const Teuchos::SerialDenseMatrix<int, double>& constants,
+                              void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+									       const std::vector<F>&, 
+									       std::vector<F>&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
+
+            {
+                myTargetsDesired.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(targetsDesired.length(), initialGuess.length());
+
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                for(int i = 0; i < targetsDesired.length(); i++)
+                {
+                    myCurrentGuesses[i] =initialGuess[i];
+                    myCurrentGuesses[i].diff(i, targetsDesired.length());
+                }
+
+                myTargetsDesired = targetsDesired;
+                myConstants = constants;
+	            myCalculateDependentVariables = yourCalculateDependentVariables;
+
+                return true;
+            };
+
+            const Teuchos::SerialDenseVector<int, double>& whatHaveIGuessed()
+            {
+                for(int i = 0; i < myScratchReal.length(); i++)
+                {
+                    myScratchReal[i] = myCurrentGuesses[i].val();
+                }
+                return myScratchReal;
+            };
+
+
 	};
 
-	class NRUserSupplied: private NewtonRaphsonProblem 
+	class NRUserSupplied: public NewtonRaphsonProblem 
 	{
 		private:
 			Teuchos::SerialDenseVector<int, double > myCurrentGuesses;
@@ -650,6 +762,44 @@ namespace NRNameSpace{
                 std::cout << "Error tollerance: " << ERRORTOLLERANCE << std::endl;
                 std::cout << "Final error: " << error << std::endl;
             }
+
+          bool fullReinitialize(const int MYNUMDIMENSIONS,
+					    const Teuchos::SerialDenseVector<int, double>& initialGuess,
+					    const Teuchos::SerialDenseVector<int, double>& targetsDesired,
+					    const Teuchos::SerialDenseMatrix<int, double>& constants,
+					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
+									       const Teuchos::SerialDenseVector<int, double >&, 
+									       Teuchos::SerialDenseVector<int, double >&,
+                                           const Teuchos::SerialDenseVector<int, double>&),
+                        void yourCalculateJacobian(const Teuchos::SerialDenseMatrix<int, double>&, 
+                                                         Teuchos::SerialDenseMatrix<int, double>&, 
+                                                   const Teuchos::SerialDenseVector<int, double>&,
+                                                   const Teuchos::SerialDenseVector<int,double>&))
+			{
+                myCurrentGuesses.resize(initialGuess.length());
+                myTargetsDesired.resize(targetsDesired.length());
+                myTargetsCalculated.resize(targetsDesired.length());
+                myScratchReal.resize(targetsDesired.length());
+                myJacobian.shapeUninitialized(myTargetsDesired.length(), myCurrentGuesses.length());
+                myConstants.shapeUninitialized(constants.numRows(), constants.numCols());
+                myConstants = constants;
+
+                myCurrentGuesses = initialGuess;
+                myTargetsDesired = targetsDesired;
+	            myCalculateDependentVariables = yourCalculateDependentVariables;
+	            myCalculateJacobian = yourCalculateJacobian;
+
+                return true;
+			};
+
+
+            
+            const Teuchos::SerialDenseVector<int, double>& whatHaveIGuessed()
+            {
+                return myCurrentGuesses;
+            };
+
+
 	};
 
 }
