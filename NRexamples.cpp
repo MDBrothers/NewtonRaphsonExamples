@@ -3,15 +3,18 @@
 
 void CalcDepVarsCS(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const Teuchos::SerialDenseVector<int, std::complex<double> >& currentGuesses, 
-         			       Teuchos::SerialDenseVector<int, std::complex<double> >& targetsCalculated);
+         			       Teuchos::SerialDenseVector<int, std::complex<double> >& targetsCalculated,
+                     const Teuchos::SerialDenseVector<int, double>& targetsDesired);
 
 void CalcDepVarsAD(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const std::vector<NRNameSpace::F>& currentGuesses, 
-         			       std::vector<NRNameSpace::F>& targetsCalculated);
+         			       std::vector<NRNameSpace::F>& targetsCalculated,
+                     const Teuchos::SerialDenseVector<int, double>& targetsDesired);
 
 void CalcDepVarsFD(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const Teuchos::SerialDenseVector<int, double>& currentGuesses, 
-         			       Teuchos::SerialDenseVector<int, double>& targetsCalculated);
+         			       Teuchos::SerialDenseVector<int, double>& targetsCalculated,
+                     const Teuchos::SerialDenseVector<int, double>& targetsDesired);
 
 int main(int argc, char * argv[])
 {
@@ -113,7 +116,8 @@ int main(int argc, char * argv[])
 
 void CalcDepVarsCS(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const Teuchos::SerialDenseVector<int, std::complex<double> >& currentGuesses, 
-         			       Teuchos::SerialDenseVector<int, std::complex<double> >& targetsCalculated)
+         			       Teuchos::SerialDenseVector<int, std::complex<double> >& targetsCalculated,
+                    const Teuchos::SerialDenseVector<int, double>& targetsDesired )
         {
     	    //Evaluate a dependent variable for each iteration
 	        for(int i = 0; i < targetsCalculated.length(); i++)
@@ -121,12 +125,14 @@ void CalcDepVarsCS(const Teuchos::SerialDenseMatrix<int, double>& constants,
 	    	    targetsCalculated[i] = pow(currentGuesses[0] - constants(i, 0), 2.0);
 	    	    targetsCalculated[i] += pow(currentGuesses[1] - constants(i,  1), 2.0);
 	    	    targetsCalculated[i] += currentGuesses[2]*pow(-1.0,i) - constants(i,  2);
+                targetsCalculated[i] -= targetsDesired[i];
 	        }
         }
 
 void CalcDepVarsAD(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const std::vector<NRNameSpace::F>& currentGuesses, 
-         			       std::vector<NRNameSpace::F>& targetsCalculated)
+         			       std::vector<NRNameSpace::F>& targetsCalculated,
+                     const Teuchos::SerialDenseVector<int, double>& targetsDesired)
         {
     	    //Evaluate a dependent variable for each iteration
 	        for(int i = 0; i < targetsCalculated.size(); i++)
@@ -134,12 +140,14 @@ void CalcDepVarsAD(const Teuchos::SerialDenseMatrix<int, double>& constants,
 	    	    targetsCalculated[i] = pow(currentGuesses[0] - constants(i, 0), 2.0);
 	    	    targetsCalculated[i] += pow(currentGuesses[1] - constants(i,  1), 2.0);
 	    	    targetsCalculated[i] += currentGuesses[2]*pow(-1.0,i) - constants(i,  2);
+                targetsCalculated[i] -= targetsDesired[i];
 	        }
         }
 
 void CalcDepVarsFD(const Teuchos::SerialDenseMatrix<int, double>& constants, 
    		  			 const Teuchos::SerialDenseVector<int, double>& currentGuesses, 
-         			       Teuchos::SerialDenseVector<int, double>& targetsCalculated)
+         			       Teuchos::SerialDenseVector<int, double>& targetsCalculated,
+                   const Teuchos::SerialDenseVector<int, double>& targetsDesired)
         {
     	    //Evaluate a dependent variable for each iteration
 	        for(int i = 0; i < targetsCalculated.length(); i++)
@@ -147,6 +155,7 @@ void CalcDepVarsFD(const Teuchos::SerialDenseMatrix<int, double>& constants,
 	    	    targetsCalculated[i] = pow(currentGuesses[0] - constants(i, 0), 2.0);
 	    	    targetsCalculated[i] += pow(currentGuesses[1] - constants(i,  1), 2.0);
 	    	    targetsCalculated[i] += currentGuesses[2]*pow(-1.0,i) - constants(i,  2);
+                targetsCalculated[i] -= targetsDesired[i];
 	        }
         }
 

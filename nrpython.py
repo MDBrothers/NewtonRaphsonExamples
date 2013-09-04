@@ -10,8 +10,12 @@ print constants
 def f(deflection):
     Displacement = deflection
 
-    CosPhi = 254.0 / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
-    SinPhi = (2.54 - Displacement) / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
+    #CosPhi = 254.0 / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
+    #SinPhi = (2.54 - Displacement) / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
+    phi = np.arctan(2.54/254.0)
+
+    CosPhi = np.cos(phi)
+    SinPhi = np.sin(phi)
 
     Rigidity = constants[0]
     OriginalLength = constants[1]
@@ -22,10 +26,13 @@ def f(deflection):
 def j(deflection):
     Displacement = deflection;
 
-    CosPhi = 254.0 / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
-    SinPhi = (2.54 - Displacement) / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
+    #CosPhi = 254.0 / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
+    #SinPhi = (2.54 - Displacement) / pow(pow(254.0, 2.0) + pow(2.54 - Displacement, 2.0), .5)
 
+    phi = np.arctan(2.54/254.0)
 
+    CosPhi = np.cos(phi)
+    SinPhi = np.sin(phi)
 
     Rigidity = constants[0]
     OriginalLength = constants[1]

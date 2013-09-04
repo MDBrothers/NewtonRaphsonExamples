@@ -37,20 +37,23 @@ namespace NRNameSpace{
 
 	        void (*myCalculateDependentVariables)(const Teuchos::SerialDenseMatrix<int, double>&, 
 									                const Teuchos::SerialDenseVector<int, double >&, 
-									                Teuchos::SerialDenseVector<int, double >&);            
+									                Teuchos::SerialDenseVector<int, double >&,
+                                                    const Teuchos::SerialDenseVector<int, double >&);            
 
             void calculateJacobian(const double PROBELENGTH,
                             const Teuchos::SerialDenseMatrix<int, double>& constants,
+                            const Teuchos::SerialDenseVector<int, double>& targetsDesired,
                             Teuchos::SerialDenseMatrix<int,  double>& jacobian, 
                             Teuchos::SerialDenseVector<int, double >& currentGuesses, 
                             Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                             Teuchos::SerialDenseVector<int, double >& unperturbedTargets,
                        void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
                                           const Teuchos::SerialDenseVector<int, double >&, 
-                                                Teuchos::SerialDenseVector<int, double >&))
+                                                Teuchos::SerialDenseVector<int, double >&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
             {
                 //evaluate model with no perturbation
-                myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets);
+                myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets, targetsDesired);
                 double oldGuessValue = 0.0;
 
                 for(int column = 0; column < targetsCalculated.length(); column++)
@@ -60,7 +63,7 @@ namespace NRNameSpace{
                     currentGuesses[column] += PROBELENGTH;
 
                     //Re-evaluate and apply forward difference formula 
-                    myCalculateDependentVariables(constants, currentGuesses, targetsCalculated);
+                    myCalculateDependentVariables(constants, currentGuesses, targetsCalculated, targetsDesired);
                     targetsCalculated -= unperturbedTargets;
                     targetsCalculated *= pow(PROBELENGTH, -1.0);
 
@@ -76,7 +79,7 @@ namespace NRNameSpace{
 
             void updateGuess(const double UPDATEMULTIPLIER,
                     Teuchos::SerialDenseVector<int, double >& currentGuesses,
-                    const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
                     Teuchos::LAPACK<int, double>& lapack)
@@ -98,19 +101,19 @@ namespace NRNameSpace{
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
                 scratch *= UPDATEMULTIPLIER;
+                targetsCalculated = currentGuesses;
                 currentGuesses += scratch;
             }
 
-            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
+            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& currentGuesses, 
                                    const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                             Teuchos::SerialDenseVector<int, double>& scratch,
                             double& error)
             {
-                //error is the l2 norm of the difference from my current results to my desired
-                //results 
+                //targetsCalculated actually contains previous guesses
                 for(int i = 0; i < targetsCalculated.length(); i++)
                 {
-                    scratch[i] = targetsCalculated[i] - targetsDesired[i];
+                    scratch[i] = targetsCalculated[i] - currentGuesses[i];
                 }
                 error = sqrt(scratch.dot(scratch));
             }
@@ -121,7 +124,8 @@ namespace NRNameSpace{
 					    const Teuchos::SerialDenseMatrix<int, double>& constants,
 					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const Teuchos::SerialDenseVector<int, double >&, 
-									       Teuchos::SerialDenseVector<int, double >&))
+									       Teuchos::SerialDenseVector<int, double >&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
 			{
                 myCurrentGuesses.resize(initialGuess.length());
                 myTargetsDesired.resize(targetsDesired.length());
@@ -149,6 +153,7 @@ namespace NRNameSpace{
                     calculateJacobian(
                             PROBELENGTH,
                             myConstants,
+                            myTargetsDesired,
                               myJacobian,
                               myCurrentGuesses,
                               myTargetsCalculated,
@@ -162,7 +167,7 @@ namespace NRNameSpace{
                             myJacobian,
                             LAPACK);
 
-                    calculateResidual(myTargetsDesired,
+                    calculateResidual(myCurrentGuesses,
                                   myTargetsCalculated,
                                   myScratchReal,
                               error);	  
@@ -193,20 +198,23 @@ namespace NRNameSpace{
 
 	        void (*myCalculateDependentVariables)(const Teuchos::SerialDenseMatrix<int, double>&, 
 									                const Teuchos::SerialDenseVector<int, std::complex<double> >&, 
-									                Teuchos::SerialDenseVector<int, std::complex<double> >&);            
+									                Teuchos::SerialDenseVector<int, std::complex<double> >&,
+                                                    const Teuchos::SerialDenseVector<int, double>&);            
 
             void calculateJacobian(const double PROBELENGTH,
                             const Teuchos::SerialDenseMatrix<int, double>& constants,
+                            const Teuchos::SerialDenseVector<int, double>& targetsDesired,
                             Teuchos::SerialDenseMatrix<int,  double>& jacobian, 
                             Teuchos::SerialDenseVector<int, std::complex< double> >& currentGuesses, 
                             Teuchos::SerialDenseVector<int, std::complex< double> >& targetsCalculated,
                             Teuchos::SerialDenseVector<int, std::complex< double> >& unperturbedTargets,
                        void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
                                           const Teuchos::SerialDenseVector<int, std::complex< double> >&, 
-                                                Teuchos::SerialDenseVector<int, std::complex< double> >&))
+                                                Teuchos::SerialDenseVector<int, std::complex< double> >&,
+                                                const Teuchos::SerialDenseVector<int, double>&))
             {
                 //evaluate the unperturbed model
-                myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets);
+                myCalculateDependentVariables(constants, currentGuesses, unperturbedTargets, targetsDesired);
                 std::complex< double> oldGuessValue;
 
                 for(int column = 0; column < targetsCalculated.length(); column++)
@@ -216,7 +224,7 @@ namespace NRNameSpace{
                     currentGuesses[column] += std::complex< double>(0.0, PROBELENGTH);
 
                     //Evaluate model for perturbed guess
-                    myCalculateDependentVariables(constants, currentGuesses, targetsCalculated);
+                    myCalculateDependentVariables(constants, currentGuesses, targetsCalculated, targetsDesired);
 
                     //Divide each element by PROBELENGTH
                     targetsCalculated *= pow(PROBELENGTH, -1.0);
@@ -260,19 +268,20 @@ namespace NRNameSpace{
                 //We have overwritten targetsCalculated with guess update values
                 for(int i = 0; i < targetsCalculated.length(); i++)
                 {
+                    targetsCalculated[i] = currentGuesses[i];
                     currentGuesses[i] += UPDATEMULTIPLIER*scratch[i];
                 }
             }
 
-            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
+            void calculateResidual(const Teuchos::SerialDenseVector<int, std::complex<double> >& currentGuesses, 
                                    const Teuchos::SerialDenseVector<int, std::complex< double> >& targetsCalculated,
                             Teuchos::SerialDenseVector<int, double>& scratch,
                             double& error)
             {
-                //error is the l2 norm of the difference from my state to my target
+                //Targets calculated actually contains the previous guess right now
                 for(int i = 0; i < targetsCalculated.length(); i++)
                 {
-                    scratch[i] = std::real(targetsCalculated[i]) - targetsDesired[i];
+                    scratch[i] = std::real(targetsCalculated[i]) - std::real(currentGuesses[i]);
                 }
                 error = sqrt(scratch.dot(scratch));
             }
@@ -283,7 +292,8 @@ namespace NRNameSpace{
 					    const Teuchos::SerialDenseMatrix<int, double>& constants,
 					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const Teuchos::SerialDenseVector<int, std::complex<double> >&, 
-									       Teuchos::SerialDenseVector<int, std::complex<double> >&))
+									       Teuchos::SerialDenseVector<int, std::complex<double> >&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
 			{
                 myCurrentGuesses.resize(initialGuess.length());
                 myTargetsDesired.resize(targetsDesired.length());
@@ -314,6 +324,7 @@ namespace NRNameSpace{
                     calculateJacobian(
                             PROBELENGTH,
                             myConstants,
+                            myTargetsDesired,
                               myJacobian,
                               myCurrentGuesses,
                               myTargetsCalculated,
@@ -327,7 +338,7 @@ namespace NRNameSpace{
                             myJacobian,
                             LAPACK);
 
-                    calculateResidual(myTargetsDesired,
+                    calculateResidual(myCurrentGuesses,
                                   myTargetsCalculated,
                                   myScratchReal,
                               error);	  
@@ -360,18 +371,21 @@ namespace NRNameSpace{
 
 	        void (*myCalculateDependentVariables)(const Teuchos::SerialDenseMatrix<int, double>&, 
 									                const std::vector<F>&, 
-									                std::vector<F>&);            
+									                std::vector<F>&i,
+                                                    const Teuchos::SerialDenseVector<int, double>&);            
 
             void calculateJacobian(
                             const Teuchos::SerialDenseMatrix<int, double>& constants,
+                            const Teuchos::SerialDenseVector<int, double>& targetsDesired,
                             Teuchos::SerialDenseMatrix<int,  double>& jacobian, 
                             std::vector<F>& currentGuesses, 
                             std::vector<F>& targetsCalculated,
                        void myCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
                                           const std::vector<F>&, 
-                                                std::vector<F>&))
+                                                std::vector<F>&,
+                                          const Teuchos::SerialDenseVector<int, double>&))
             {
-                myCalculateDependentVariables(constants, currentGuesses, targetsCalculated);
+                myCalculateDependentVariables(constants, currentGuesses, targetsCalculated, targetsDesired);
 
                 for(int column = 0; column < targetsCalculated.size(); column++)
                 {
@@ -408,19 +422,20 @@ namespace NRNameSpace{
                 //We have overwritten scratch 
                 for(int i = 0; i < targetsCalculated.size(); i++)
                 {
+                    targetsCalculated[i] = currentGuesses[i];
                     currentGuesses[i] += UPDATEMULTIPLIER*scratch[i];
                 }
             }
 
-            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
+            void calculateResidual(std::vector<F>& currentGuesses, 
                                    std::vector<F>& targetsCalculated,
                             Teuchos::SerialDenseVector<int, double>& scratch,
                             double& error)
             {
-                //error is the l2 norm of the difference from my state to my target
+                //targetsCalculated actually contains the previous guesses right now, or ought to
                 for(int i = 0; i < targetsCalculated.size(); i++)
                 {
-                    scratch[i] = targetsCalculated[i].val() - targetsDesired[i];
+                    scratch[i] = targetsCalculated[i].val() - currentGuesses[i].val();
                 }
                 error = sqrt(scratch.dot(scratch));
             }
@@ -432,7 +447,8 @@ namespace NRNameSpace{
 					                   const Teuchos::SerialDenseMatrix<int, double>& constants,
 					                   void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const std::vector<F>&, 
-									       std::vector<F>&))
+									       std::vector<F>&,
+                                           const Teuchos::SerialDenseVector<int, double>&))
 			{
                 myTargetsDesired.resize(targetsDesired.length());
                 myScratchReal.resize(targetsDesired.length());
@@ -464,6 +480,7 @@ namespace NRNameSpace{
                 {
                     calculateJacobian(
                             myConstants,
+                            myTargetsDesired,
                               myJacobian,
                               myCurrentGuesses,
                               myTargetsCalculated,
@@ -476,7 +493,7 @@ namespace NRNameSpace{
                             myJacobian,
                             LAPACK);
 
-                    calculateResidual(myTargetsDesired,
+                    calculateResidual(myCurrentGuesses,
                                   myTargetsCalculated,
                                   myScratchReal,
                               error);	  
@@ -506,15 +523,17 @@ namespace NRNameSpace{
 
 	        void (*myCalculateDependentVariables)(const Teuchos::SerialDenseMatrix<int, double>&, 
                                                  const Teuchos::SerialDenseVector<int, double >&, 
-									                Teuchos::SerialDenseVector<int, double >&);            
+									                Teuchos::SerialDenseVector<int, double >&,
+                                                 const Teuchos::SerialDenseVector<int, double>&);            
 
             void (*myCalculateJacobian)(const Teuchos::SerialDenseMatrix<int, double>&, 
                                         Teuchos::SerialDenseMatrix<int, double>&, 
-                                        const Teuchos::SerialDenseVector<int, double>&);
+                                        const Teuchos::SerialDenseVector<int, double>&,
+                                        const Teuchos::SerialDenseVector<int,double>&);
             
             void updateGuess(const double UPDATEMULTIPLIER,
                     Teuchos::SerialDenseVector<int, double >& currentGuesses,
-                    const Teuchos::SerialDenseVector<int, double >& targetsCalculated,
+                    Teuchos::SerialDenseVector<int, double >& targetsCalculated,
                     Teuchos::SerialDenseVector<int, double >& scratch,
                     Teuchos::SerialDenseMatrix<int, double>& jacobian, 
                     Teuchos::LAPACK<int, double>& lapack)
@@ -538,19 +557,19 @@ namespace NRNameSpace{
                 //We have overwritten targetsCalculated with guess update values
                 //Now update current guesses
                 scratch *= UPDATEMULTIPLIER;
+                targetsCalculated = currentGuesses;
                 currentGuesses += scratch;
             }
 
-            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& targetsDesired, 
+            void calculateResidual(const Teuchos::SerialDenseVector<int, double>& currentGuesses, 
                                    const Teuchos::SerialDenseVector<int, double>& targetsCalculated,
                             Teuchos::SerialDenseVector<int, double>& scratch,
                             double& error)
             {
-                //error is the l2 norm of the difference from my current results to my desired
-                //results 
+                //targetsCalculated acutally contains the previous guesses
                 for(int i = 0; i < targetsCalculated.length(); i++)
                 {
-                    scratch[i] = targetsCalculated[i] - targetsDesired[i];
+                    scratch[i] = targetsCalculated[i] - currentGuesses[i];
                 }
                 error = sqrt(scratch.dot(scratch));
             }
@@ -561,10 +580,12 @@ namespace NRNameSpace{
 					    const Teuchos::SerialDenseMatrix<int, double>& constants,
 					    void yourCalculateDependentVariables(const Teuchos::SerialDenseMatrix<int, double>&, 
 									       const Teuchos::SerialDenseVector<int, double >&, 
-									       Teuchos::SerialDenseVector<int, double >&),
+									       Teuchos::SerialDenseVector<int, double >&,
+                                           const Teuchos::SerialDenseVector<int, double>&),
                         void yourCalculateJacobian(const Teuchos::SerialDenseMatrix<int, double>&, 
                                                          Teuchos::SerialDenseMatrix<int, double>&, 
-                                                   const Teuchos::SerialDenseVector<int, double>&))
+                                                   const Teuchos::SerialDenseVector<int, double>&,
+                                                   const Teuchos::SerialDenseVector<int,double>&))
 
 			{
                 myCurrentGuesses.resize(initialGuess.length());
@@ -594,11 +615,13 @@ namespace NRNameSpace{
 
                     myCalculateDependentVariables(myConstants,
                                                   myCurrentGuesses,
-                                                  myTargetsCalculated);
+                                                  myTargetsCalculated,
+                                                  myTargetsDesired);
 
                     myCalculateJacobian(myConstants,
                                         myJacobian,
-                                        myCurrentGuesses);
+                                        myCurrentGuesses,
+                                        myTargetsDesired);
 
                     updateGuess(UPDATEMULTIPLIER,
                              myCurrentGuesses,
@@ -607,13 +630,13 @@ namespace NRNameSpace{
                             myJacobian,
                             LAPACK);
 
-                    calculateResidual(myTargetsDesired,
+                    calculateResidual(myCurrentGuesses,
                                   myTargetsCalculated,
                                   myScratchReal,
                               error);	  
 
                     count ++;
-             //       std::cout << "Residual Error: " << error << std::endl;
+                    //std::cout << "Residual Error: " << error << std::endl;
                 }
                 
                 std::cout << "******************************************" << std::endl;
